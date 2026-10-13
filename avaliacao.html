@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Avaliação FIorde</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f4f6f8;
+            font-family: Arial, sans-serif;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.10);
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #222;
+        }
+
+        .subtitulo {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .estrelas {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin: 20px 0 30px;
+        }
+
+        .estrela {
+            font-size: 48px;
+            color: #ccc;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .estrela:hover,
+        .estrela.selecionada {
+            color: #f5b301;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            resize: vertical;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: Arial, sans-serif;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #1677ff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0d63d8;
+        }
+
+        button:disabled {
+            background: #aaa;
+            cursor: wait;
+        }
+
+        #mensagem {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        .sucesso {
+            color: #16833b;
+        }
+
+        .erro {
+            color: #c62828;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card">
+
+    <h1>Avaliação de Atendimento</h1>
+
+    <div class="subtitulo">
+        Como você avalia nosso atendimento?
+    </div>
+
+    <div class="estrelas">
+        <span class="estrela" data-nota="1">★</span>
+        <span class="estrela" data-nota="2">★</span>
+        <span class="estrela" data-nota="3">★</span>
+        <span class="estrela" data-nota="4">★</span>
+        <span class="estrela" data-nota="5">★</span>
+    </div>
+
+    <textarea
+        id="comentario"
+        placeholder="Deixe um comentário (opcional)">
+    </textarea>
+
+    <button id="enviar">
+        ENVIAR AVALIAÇÃO
+    </button>
+
+    <div id="mensagem"></div>
+
+</div>
+
+<script>
+
+    // ==========================================
+    // CONFIGURAÇÃO DO SUPABASE
+    // ==========================================
+
+    const SUPABASE_URL =
+        "https://nniariwvpyqleeryzksh.supabase.co";
+
+    const SUPABASE_KEY =
+        "sb_publishable_2ElxL2VDVn77d4O6juXT6g_VzxGcTnU";
+
+
+    // ==========================================
+    // VARIÁVEIS
+    // ==========================================
+
+    let notaSelecionada = 0;
+
+    const estrelas = document.querySelectorAll(".estrela");
+    const botao = document.getElementById("enviar");
+    const comentario = document.getElementById("comentario");
+    const mensagem = document.getElementById("mensagem");
+
+
+    // ==========================================
+    // SELEÇÃO DAS ESTRELAS
+    // ==========================================
+
+    estrelas.forEach(estrela => {
+
+        estrela.addEventListener("click", () => {
+
+            notaSelecionada =
+                Number(estrela.dataset.nota);
+
+            atualizarEstrelas();
+
+        });
+
+    });
+
+
+    function atualizarEstrelas() {
+
+        estrelas.forEach(estrela => {
+
+            const numero =
+                Number(estrela.dataset.nota);
+
+            if (numero <= notaSelecionada) {
+                estrela.classList.add("selecionada");
+            } else {
+                estrela.classList.remove("selecionada");
+            }
+
+        });
+
+    }
+
+
+    // ==========================================
+    // ENVIAR AVALIAÇÃO
+    // ==========================================
+
+    botao.addEventListener("click", async () => {
+
+        mensagem.textContent = "";
+        mensagem.className = "";
+
+        if (notaSelecionada === 0) {
+
+            mensagem.textContent =
+                "Selecione uma nota de 1 a 5 estrelas.";
+
+            mensagem.className = "erro";
+
+            return;
+        }
+
+
+        botao.disabled = true;
+        botao.textContent = "ENVIANDO...";
+
+
+        const dados = {
+
+            cliente: null,
+
+            nota: notaSelecionada,
+
+            comentario:
+                comentario.value.trim() || null
+
+        };
+
+
+        try {
+
+            const resposta = await fetch(
+                SUPABASE_URL +
+                "/rest/v1/avaliacoes",
+                {
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json",
+
+                        "apikey":
+                            SUPABASE_KEY,
+
+                        "Authorization":
+                            "Bearer " + SUPABASE_KEY,
+
+                        "Prefer":
+                            "return=minimal"
+
+                    },
+
+                    body: JSON.stringify(dados)
+
+                }
+            );
+
+
+            if (!resposta.ok) {
+
+                const erro =
+                    await resposta.text();
+
+                throw new Error(erro);
+
+            }
+
+
+            mensagem.textContent =
+                "Obrigado pela sua avaliação!";
+
+            mensagem.className =
+                "sucesso";
+
+
+            // Limpa o formulário
+
+            notaSelecionada = 0;
+
+            atualizarEstrelas();
+
+            comentario.value = "";
+
+
+        } catch (erro) {
+
+            console.error(erro);
+
+            mensagem.textContent =
+                "Não foi possível enviar a avaliação.";
+
+            mensagem.className =
+                "erro";
+
+        }
+
+
+        botao.disabled = false;
+
+        botao.textContent =
+            "ENVIAR AVALIAÇÃO";
+
+    });
+
+</script>
+
+</body>
+</html>
