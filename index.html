@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -28,24 +29,51 @@
             padding: 35px;
             border-radius: 16px;
             box-shadow: 0 5px 25px rgba(0,0,0,0.10);
-            text-align: center;
         }
 
         h1 {
             margin-top: 0;
+            text-align: center;
             color: #222;
         }
 
         .subtitulo {
+            text-align: center;
             color: #666;
             margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: Arial, sans-serif;
+        }
+
+        input {
+            margin-bottom: 25px;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
         }
 
         .estrelas {
             display: flex;
             justify-content: center;
             gap: 8px;
-            margin: 20px 0 30px;
+            margin: 15px 0 30px;
         }
 
         .estrela {
@@ -58,17 +86,6 @@
         .estrela:hover,
         .estrela.selecionada {
             color: #f5b301;
-        }
-
-        textarea {
-            width: 100%;
-            height: 120px;
-            resize: vertical;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 15px;
-            font-family: Arial, sans-serif;
         }
 
         button {
@@ -95,6 +112,7 @@
 
         #mensagem {
             margin-top: 20px;
+            text-align: center;
             font-weight: bold;
         }
 
@@ -115,8 +133,18 @@
     <h1>Avaliação de Atendimento</h1>
 
     <div class="subtitulo">
-        Como você avalia nosso atendimento?
+        Queremos saber como foi sua experiência.
     </div>
+
+    <label for="cliente">Empresa</label>
+
+    <input
+        type="text"
+        id="cliente"
+        placeholder="Digite o nome da empresa"
+    >
+
+    <label>Como você avalia nosso atendimento?</label>
 
     <div class="estrelas">
         <span class="estrela" data-nota="1">★</span>
@@ -125,6 +153,8 @@
         <span class="estrela" data-nota="4">★</span>
         <span class="estrela" data-nota="5">★</span>
     </div>
+
+    <label for="comentario">Comentário</label>
 
     <textarea
         id="comentario"
@@ -141,178 +171,160 @@
 
 <script>
 
-    // ==========================================
-    // CONFIGURAÇÃO DO SUPABASE
-    // ==========================================
+const SUPABASE_URL =
+    "https://nniariwvpyqleeryzksh.supabase.co";
 
-    const SUPABASE_URL =
-        "https://nniariwvpyqleeryzksh.supabase.co";
+const SUPABASE_KEY =
+    "sb_publishable_2ElxL2VDVn77d4O6juXT6g_VzxGcTnU";
 
-    const SUPABASE_KEY =
-        "sb_publishable_2ElxL2VDVn77d4O6juXT6g_VzxGcTnU";
+let notaSelecionada = 0;
+
+const estrelas =
+    document.querySelectorAll(".estrela");
+
+const botao =
+    document.getElementById("enviar");
+
+const cliente =
+    document.getElementById("cliente");
+
+const comentario =
+    document.getElementById("comentario");
+
+const mensagem =
+    document.getElementById("mensagem");
 
 
-    // ==========================================
-    // VARIÁVEIS
-    // ==========================================
+estrelas.forEach(estrela => {
 
-    let notaSelecionada = 0;
+    estrela.addEventListener("click", () => {
 
-    const estrelas = document.querySelectorAll(".estrela");
-    const botao = document.getElementById("enviar");
-    const comentario = document.getElementById("comentario");
-    const mensagem = document.getElementById("mensagem");
+        notaSelecionada =
+            Number(estrela.dataset.nota);
 
+        estrelas.forEach(e => {
 
-    // ==========================================
-    // SELEÇÃO DAS ESTRELAS
-    // ==========================================
+            const numero =
+                Number(e.dataset.nota);
 
-    estrelas.forEach(estrela => {
-
-        estrela.addEventListener("click", () => {
-
-            notaSelecionada =
-                Number(estrela.dataset.nota);
-
-            atualizarEstrelas();
+            e.classList.toggle(
+                "selecionada",
+                numero <= notaSelecionada
+            );
 
         });
 
     });
 
+});
 
-    function atualizarEstrelas() {
 
-        estrelas.forEach(estrela => {
+botao.addEventListener("click", async () => {
 
-            const numero =
-                Number(estrela.dataset.nota);
+    mensagem.textContent = "";
+    mensagem.className = "";
 
-            if (numero <= notaSelecionada) {
-                estrela.classList.add("selecionada");
-            } else {
-                estrela.classList.remove("selecionada");
+    if (!cliente.value.trim()) {
+
+        mensagem.textContent =
+            "Digite o nome da empresa.";
+
+        mensagem.className = "erro";
+
+        return;
+    }
+
+    if (notaSelecionada === 0) {
+
+        mensagem.textContent =
+            "Selecione uma nota de 1 a 5 estrelas.";
+
+        mensagem.className = "erro";
+
+        return;
+    }
+
+    botao.disabled = true;
+    botao.textContent = "ENVIANDO...";
+
+
+    const dados = {
+
+        cliente: cliente.value.trim(),
+
+        nota: notaSelecionada,
+
+        comentario:
+            comentario.value.trim() || null
+
+    };
+
+
+    try {
+
+        const resposta = await fetch(
+            SUPABASE_URL + "/rest/v1/avaliacoes",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Prefer": "return=minimal"
+                },
+
+                body: JSON.stringify(dados)
             }
+        );
 
-        });
+
+        if (!resposta.ok) {
+
+            const erro =
+                await resposta.text();
+
+            throw new Error(erro);
+        }
+
+
+        mensagem.textContent =
+            "Obrigado pela sua avaliação!";
+
+        mensagem.className =
+            "sucesso";
+
+
+        cliente.value = "";
+        comentario.value = "";
+        notaSelecionada = 0;
+
+        estrelas.forEach(e =>
+            e.classList.remove("selecionada")
+        );
+
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        mensagem.textContent =
+            "Não foi possível enviar a avaliação.";
+
+        mensagem.className =
+            "erro";
 
     }
 
 
-    // ==========================================
-    // ENVIAR AVALIAÇÃO
-    // ==========================================
+    botao.disabled = false;
+    botao.textContent =
+        "ENVIAR AVALIAÇÃO";
 
-    botao.addEventListener("click", async () => {
-
-        mensagem.textContent = "";
-        mensagem.className = "";
-
-        if (notaSelecionada === 0) {
-
-            mensagem.textContent =
-                "Selecione uma nota de 1 a 5 estrelas.";
-
-            mensagem.className = "erro";
-
-            return;
-        }
-
-
-        botao.disabled = true;
-        botao.textContent = "ENVIANDO...";
-
-
-        const dados = {
-
-            cliente: null,
-
-            nota: notaSelecionada,
-
-            comentario:
-                comentario.value.trim() || null
-
-        };
-
-
-        try {
-
-            const resposta = await fetch(
-                SUPABASE_URL +
-                "/rest/v1/avaliacoes",
-                {
-                    method: "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json",
-
-                        "apikey":
-                            SUPABASE_KEY,
-
-                        "Authorization":
-                            "Bearer " + SUPABASE_KEY,
-
-                        "Prefer":
-                            "return=minimal"
-
-                    },
-
-                    body: JSON.stringify(dados)
-
-                }
-            );
-
-
-            if (!resposta.ok) {
-
-                const erro =
-                    await resposta.text();
-
-                throw new Error(erro);
-
-            }
-
-
-            mensagem.textContent =
-                "Obrigado pela sua avaliação!";
-
-            mensagem.className =
-                "sucesso";
-
-
-            // Limpa o formulário
-
-            notaSelecionada = 0;
-
-            atualizarEstrelas();
-
-            comentario.value = "";
-
-
-        } catch (erro) {
-
-            console.error(erro);
-
-            mensagem.textContent =
-                "Não foi possível enviar a avaliação.";
-
-            mensagem.className =
-                "erro";
-
-        }
-
-
-        botao.disabled = false;
-
-        botao.textContent =
-            "ENVIAR AVALIAÇÃO";
-
-    });
+});
 
 </script>
 
 </body>
 </html>
+```
